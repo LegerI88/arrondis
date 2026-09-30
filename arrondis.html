@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Arrondis et calculs de caisse – 1EPC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --fraise:#FF4F79; --lagon:#1AA7E0; --menthe:#1FC596; --mangue:#FFB020; --prune:#7B5CFF;
+  --bg:#FBF4FF; --surface:#FFFFFF; --ink:#23173B; --muted:#6B5E86; --line:#E7DDF5;
+  --ok-bg:#E3FAF1; --ko-bg:#FFE6EC; --warn-bg:#FFF4D9; --paper:#FFFFFF;
+  --display:"Baloo 2", "Trebuchet MS", system-ui, sans-serif;
+  --body:"Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
+  --ticket:"Courier Prime", "Courier New", monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1A1230; --surface:#261C42; --ink:#F6F0FF; --muted:#BDB0DA; --line:#3B2E60;
+    --ok-bg:#12382F; --ko-bg:#45182A; --warn-bg:#3F3113; --paper:#2E2450;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1A1230; --surface:#261C42; --ink:#F6F0FF; --muted:#BDB0DA; --line:#3B2E60;
+  --ok-bg:#12382F; --ko-bg:#45182A; --warn-bg:#3F3113; --paper:#2E2450;
+}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);}
+html{scroll-padding-top:env(safe-area-inset-top,0px);}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.55;
+  background-image:radial-gradient(circle at 12% 8%, rgba(255,79,121,.10) 0 180px, transparent 181px),
+                   radial-gradient(circle at 92% 30%, rgba(26,167,224,.10) 0 220px, transparent 221px),
+                   radial-gradient(circle at 20% 90%, rgba(31,197,150,.10) 0 200px, transparent 201px);
+  background-attachment:fixed;}
+h1,h2,h3{font-family:var(--display);line-height:1.15;margin:0 0 .4em}
+h2{font-size:1.7rem}
+h3{font-size:1.25rem}
+p{margin:.4em 0 .8em}
+button,input,select{font:inherit}
+:focus-visible{outline:3px solid var(--prune);outline-offset:2px;border-radius:6px}
+
+/* ---------- En-tête ---------- */
+.hero{max-width:1180px;margin:0 auto;padding:28px 20px 8px;display:grid;grid-template-columns:auto 1fr;gap:28px;align-items:center}
+.tag-wrap{width:170px;height:190px;position:relative}
+.tag-string{position:absolute;left:84px;top:0;width:2px;height:40px;background:var(--muted)}
+.tag{position:absolute;top:34px;left:10px;width:150px;height:150px;background:var(--mangue);color:#23173B;
+  border-radius:22px 22px 22px 22px;clip-path:polygon(50% 0,100% 22%,100% 100%,0 100%,0 22%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:26px;
+  transform-origin:50% -20px;animation:swing 2.4s cubic-bezier(.3,.1,.2,1) 1 both;box-shadow:0 10px 0 rgba(0,0,0,.08)}
+.tag::before{content:"";position:absolute;top:18px;left:50%;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:var(--bg)}
+.tag .big{font-family:var(--display);font-weight:800;font-size:2.6rem;line-height:1}
+.tag .small{font-family:var(--display);font-weight:700;font-size:1rem}
+@keyframes swing{0%{transform:rotate(-24deg)}30%{transform:rotate(14deg)}55%{transform:rotate(-7deg)}75%{transform:rotate(3deg)}100%{transform:rotate(0)}}
+.hero h1{font-size:clamp(2rem,5vw,3.3rem);font-weight:800;letter-spacing:-.01em}
+.hero h1 .l1{color:var(--fraise);display:block}
+.hero h1 .l2{color:var(--lagon);display:block}
+.hero .intro{color:var(--muted);max-width:60ch}
+.idcard{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+.idcard label{display:flex;flex-direction:column;font-size:.85rem;color:var(--muted);font-weight:700}
+.idcard input{margin-top:3px;padding:9px 12px;border:2px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);min-width:180px}
+.idcard input:focus{border-color:var(--prune);outline:none}
+
+.toolbar{max-width:1180px;margin:0 auto;padding:6px 20px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.chip-btn{border:2px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 14px;cursor:pointer;font-weight:700;font-size:.9rem}
+.chip-btn:hover{border-color:var(--prune)}
+
+/* ---------- Parcours ---------- */
+.steps{max-width:1180px;margin:8px auto 0;padding:0 20px;display:flex;gap:8px;overflow-x:auto;padding-bottom:6px}
+.step{flex:0 0 auto;border:none;border-radius:14px;padding:8px 14px;font-family:var(--display);font-weight:700;font-size:1rem;cursor:pointer;
+  background:var(--surface);color:var(--ink);border:2px solid var(--line);display:flex;align-items:center;gap:6px}
+.step[aria-current="step"]{background:var(--prune);color:#fff;border-color:var(--prune)}
+.step.done{border-color:var(--menthe)}
+.step.done .dot{background:var(--menthe)}
+.step[disabled]{opacity:.45;cursor:not-allowed}
+.step .dot{width:10px;height:10px;border-radius:50%;background:var(--line)}
+
+/* ---------- Mise en page ---------- */
+.layout{max-width:1180px;margin:0 auto;padding:16px 20px 30px;display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:24px;align-items:start}
+.panel{background:var(--surface);border-radius:26px;padding:26px 28px;border:2px solid var(--line);min-width:0}
+.panel .meta{display:inline-block;font-weight:700;font-size:.85rem;color:#23173B;background:var(--mangue);border-radius:999px;padding:2px 12px;margin-bottom:8px}
+.consigne{background:var(--bg);border-left:6px solid var(--lagon);border-radius:0 14px 14px 0;padding:10px 16px;margin:10px 0 16px}
+
+/* ---------- Cours ---------- */
+.cours-block{border-radius:20px;padding:18px 20px;margin:0 0 16px;border:2px solid var(--line)}
+.cours-block h3{display:flex;align-items:center;gap:10px}
+.cours-block .badge{width:34px;height:34px;border-radius:10px;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:1.1rem;flex:0 0 auto}
+.c1 .badge{background:var(--fraise)} .c2 .badge{background:var(--lagon)} .c3 .badge{background:var(--menthe)} .c4 .badge{background:var(--mangue);color:#23173B} .c5 .badge{background:var(--prune)}
+.rule{list-style:none;padding:0;margin:8px 0;counter-reset:r}
+.rule li{counter-increment:r;padding:6px 0 6px 40px;position:relative}
+.rule li::before{content:counter(r);position:absolute;left:0;top:5px;width:28px;height:28px;border-radius:50%;background:var(--bg);border:2px solid var(--fraise);
+  font-weight:700;display:flex;align-items:center;justify-content:center;font-size:.9rem}
+.formula{font-family:var(--display);font-weight:700;font-size:1.15rem;background:var(--bg);border-radius:14px;padding:10px 16px;margin:8px 0;display:inline-block}
+.warn{background:var(--warn-bg);border-radius:14px;padding:10px 14px;margin:10px 0}
+.tbl-wrap{overflow-x:auto;margin:10px 0}
+table{border-collapse:separate;border-spacing:0;width:100%;min-width:420px}
+th,td{padding:8px 10px;text-align:left;border-bottom:2px solid var(--line);vertical-align:middle}
+th{font-family:var(--display);font-size:1rem;background:var(--bg)}
+th:first-child{border-top-left-radius:12px} th:last-child{border-top-right-radius:12px}
+td.num,th.num{text-align:right}
+
+/* Essai arrondi */
+.lab{background:linear-gradient(135deg, rgba(255,79,121,.12), rgba(123,92,255,.12));border-radius:20px;padding:16px 18px;margin:12px 0}
+.lab-row{display:flex;flex-wrap:wrap;gap:10px;align-items:end}
+.lab input,.lab select{padding:8px 12px;border-radius:12px;border:2px solid var(--line);background:var(--surface);color:var(--ink)}
+.digits{font-family:var(--ticket);font-size:2rem;margin:12px 0 4px;letter-spacing:.06em;word-break:break-all}
+.digits .keep{background:var(--lagon);color:#fff;border-radius:6px;padding:0 3px}
+.digits .next{background:var(--fraise);color:#fff;border-radius:6px;padding:0 3px}
+.digits .gone{opacity:.35}
+.lab-out{font-weight:700}
+
+/* ---------- Champs d'exercice ---------- */
+.ans{width:110px;padding:7px 10px;border:2px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);text-align:right;font-family:var(--ticket);font-size:1.05rem;font-weight:700}
+.ans:focus{border-color:var(--prune);outline:none}
+.ans.ok{border-color:var(--menthe);background:var(--ok-bg)}
+.ans.ko{border-color:var(--fraise);background:var(--ko-bg)}
+.ans.fmt{border-color:var(--mangue);background:var(--warn-bg)}
+.op{width:100%;min-width:230px;padding:9px 12px;border:3px dashed var(--prune);border-radius:12px;background:var(--bg);color:var(--ink);font-family:var(--ticket);font-size:1.05rem;font-weight:700}
+.op:focus{outline:none;border-style:solid}
+.op.ok{border-color:var(--menthe);background:var(--ok-bg)}
+.op.ko{border-color:var(--fraise);background:var(--ko-bg)}
+.vf{display:inline-flex;gap:6px}
+.vf button{border:2px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:5px 12px;font-weight:700;cursor:pointer}
+.vf button[aria-pressed="true"]{background:var(--prune);border-color:var(--prune);color:#fff}
+.vf.ok button[aria-pressed="true"]{background:var(--menthe);border-color:var(--menthe)}
+.vf.ko button[aria-pressed="true"]{background:var(--fraise);border-color:var(--fraise)}
+.corr-slot{min-height:40px;display:flex;align-items:center;justify-content:flex-end;margin-top:6px}
+.corr-lab{display:flex;align-items:center;gap:8px;font-weight:700;font-size:.9rem;color:var(--fraise)}
+.shake{animation:shake .4s}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.pop{animation:pop .35s}
+@keyframes pop{50%{transform:scale(1.12)}}
+
+.qcm{margin:18px 0 6px;padding:14px 16px;border-radius:18px;background:var(--bg)}
+.qcm .q{font-weight:700;margin-bottom:8px}
+.qcm .opts{display:grid;gap:8px}
+.qcm button{text-align:left;border:2px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:9px 14px;cursor:pointer}
+.qcm button[aria-pressed="true"]{border-color:var(--prune);box-shadow:inset 6px 0 0 var(--prune)}
+.qcm.ok button[aria-pressed="true"]{border-color:var(--menthe);box-shadow:inset 6px 0 0 var(--menthe);background:var(--ok-bg)}
+.qcm.ko button[aria-pressed="true"]{border-color:var(--fraise);box-shadow:inset 6px 0 0 var(--fraise);background:var(--ko-bg)}
+
+.actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:18px}
+.btn{border:none;border-radius:16px;padding:12px 22px;font-family:var(--display);font-weight:800;font-size:1.1rem;cursor:pointer;color:#fff;background:var(--fraise);box-shadow:0 5px 0 #C9365B;transition:transform .08s}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 #C9365B}
+.btn.next{background:var(--menthe);box-shadow:0 5px 0 #149A74}
+.btn.next:active{box-shadow:0 2px 0 #149A74}
+.btn[disabled]{background:var(--line);color:var(--muted);box-shadow:none;cursor:not-allowed}
+.feedback{font-weight:700;border-radius:14px;padding:10px 14px;display:none}
+.feedback.show{display:block}
+.feedback.ko{background:var(--ko-bg)}
+.feedback.ok{background:var(--ok-bg)}
+.feedback.fmt{background:var(--warn-bg)}
+
+/* ---------- Annexes ---------- */
+.annex{margin:12px 0 18px;border-radius:18px;padding:16px 18px;position:relative;background:var(--paper);border:2px dashed var(--lagon)}
+.annex .annex-title{font-family:var(--display);font-weight:800;color:var(--lagon);margin-bottom:6px}
+.annex.receipt{max-width:430px;font-family:var(--ticket);border:none;background:var(--paper);box-shadow:0 0 0 2px var(--line);
+  -webkit-mask:radial-gradient(circle 8px at 50% 100%, transparent 98%, #000) 50% 100%/18px 100% repeat-x;
+  mask:radial-gradient(circle 8px at 50% 100%, transparent 98%, #000) 0 0/18px 100% repeat-x;padding-bottom:26px}
+.annex.receipt table{min-width:0;font-family:var(--ticket)}
+.annex.receipt th{background:transparent;font-family:var(--ticket)}
+.labels{display:flex;flex-wrap:wrap;gap:14px}
+.label-card{background:var(--mangue);color:#23173B;border-radius:12px 30px 30px 12px;padding:10px 26px 10px 16px;position:relative;min-width:160px}
+.label-card::after{content:"";position:absolute;right:10px;top:50%;width:10px;height:10px;margin-top:-5px;border-radius:50%;background:var(--paper)}
+.label-card:nth-child(2){background:var(--fraise);color:#fff}
+.label-card:nth-child(3){background:var(--menthe);color:#23173B}
+.label-card:nth-child(4){background:var(--lagon);color:#fff}
+.label-card .n{font-weight:700}
+.label-card .p{font-family:var(--display);font-weight:800;font-size:1.6rem;line-height:1.1}
+.label-card .t{font-size:.85rem}
+
+/* ---------- Ticket de suivi ---------- */
+.side{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
+.progress-ticket{background:var(--paper);font-family:var(--ticket);padding:18px 18px 30px;box-shadow:0 0 0 2px var(--line);
+  -webkit-mask:radial-gradient(circle 8px at 50% 100%, transparent 98%, #000) 0 0/18px 100% repeat-x;
+  mask:radial-gradient(circle 8px at 50% 100%, transparent 98%, #000) 0 0/18px 100% repeat-x;font-size:.95rem}
+.progress-ticket .head{text-align:center;border-bottom:2px dashed var(--line);padding-bottom:8px;margin-bottom:8px}
+.progress-ticket .head b{font-size:1.1rem}
+.pline{display:flex;justify-content:space-between;gap:8px;padding:3px 0}
+.pline .st{color:var(--mangue);letter-spacing:1px}
+.pline.todo{opacity:.45}
+.pline.new{animation:print .5s ease-out}
+@keyframes print{from{transform:translateY(-8px);opacity:0}to{transform:none;opacity:1}}
+.ptotal{border-top:2px dashed var(--line);margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;font-weight:700;font-size:1.05rem}
+.bar{height:12px;border-radius:999px;background:var(--line);margin-top:12px;overflow:hidden}
+.bar span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--fraise),var(--mangue),var(--menthe));transition:width .6s}
+
+/* ---------- Fin ---------- */
+.final{text-align:center}
+.final .stars{font-size:2.6rem;color:var(--mangue);letter-spacing:4px}
+.final h2{font-size:2.2rem;color:var(--fraise)}
+
+footer{max-width:1180px;margin:0 auto;padding:10px 20px 30px;color:var(--muted);font-size:.9rem;display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px}
+footer .sig{font-family:var(--display);font-weight:800;color:var(--prune);font-size:1.1rem}
+footer a{color:var(--lagon)}
+
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:50;width:100%;height:100%}
+
+@media (max-width:880px){
+  .layout{grid-template-columns:1fr}
+  .side{position:static;order:-1}
+  .hero{grid-template-columns:1fr;gap:4px}
+  .tag-wrap{width:120px;height:140px;transform:scale(.72);transform-origin:left top;margin-bottom:-40px}
+  .panel{padding:20px 16px}
+}
+@media (prefers-reduced-motion: reduce){
+  *{animation:none !important;transition:none !important}
+}
+@media print{
+  .steps,.toolbar,.actions,#confetti{display:none}
+  body{background:#fff}
+}
+</style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+
+<header class="hero">
+  <div class="tag-wrap" aria-hidden="true">
+    <div class="tag-string"></div>
+    <div class="tag"><span class="big">0,01 €</span><span class="small">1EPC</span></div>
+  </div>
+  <div>
+    <h1><span class="l1">Arrondis</span><span class="l2">et calculs de caisse</span></h1>
+    <p class="intro">Environ 1 heure. Lis le cours, puis valide les 6 exercices dans l'ordre. Si une réponse est fausse, elle devient rouge : à toi de la retrouver et de la corriger.</p>
+    <div class="idcard">
+      <label>Nom<input id="nom" autocomplete="family-name"></label>
+      <label>Prénom<input id="prenom" autocomplete="given-name"></label>
+    </div>
+  </div>
+</header>
+
+<div class="toolbar">
+  <button class="chip-btn" id="sound" aria-pressed="true">Son : activé</button>
+  <button class="chip-btn" id="reset">Recommencer à zéro</button>
+</div>
+
+<nav class="steps" id="steps" aria-label="Étapes de la séance"></nav>
+
+<main class="layout">
+  <section class="panel" id="panel" aria-live="polite"></section>
+  <aside class="side">
+    <div class="progress-ticket" id="ticket"></div>
+  </aside>
+</main>
+
+<footer>
+  <span class="sig">LEGER Isabelle – Économie-Gestion</span>
+  <span>Entreprises et prix fictifs. Taux de TVA : <a href="https://www.economie.gouv.fr/particuliers/impots-et-fiscalite/gerer-mes-autres-impots-et-taxes/tva-quels-sont-les-taux-de-votre-quotidien" target="_blank" rel="noopener">economie.gouv.fr</a>, 11/12/2025.</span>
+</footer>
+
+<script>
+/* =========================================================
+   Données des exercices
+   Cellule : "texte" | {a:nombre, d:décimales} | {vf:"V"|"F", corr:nombre}
+   ========================================================= */
+const EX = [
+ {id:"ex1", short:"Ex 1", title:"J'arrondis", time:"6 min",
+  consigne:"Arrondis chaque nombre à l'unité, au dixième et au centième. Écris exactement le bon nombre de chiffres après la virgule : aucun à l'unité, 1 au dixième, 2 au centième (ex. 8 ; 8,0 ; 8,00).",
+  head:["Nombre","À l'unité","Au dixième","Au centième"],
+  rows:[
+   ["15,678",{a:16,d:0},{a:15.7,d:1},{a:15.68,d:2}],
+   ["3,142",{a:3,d:0},{a:3.1,d:1},{a:3.14,d:2}],
+   ["249,995",{a:250,d:0},{a:250.0,d:1},{a:250.00,d:2}],
+   ["0,4449",{a:0,d:0},{a:0.4,d:1},{a:0.44,d:2}],
+   ["12,05",{a:12,d:0},{a:12.1,d:1},{a:12.05,d:2}],
+   ["7,996",{a:8,d:0},{a:8.0,d:1},{a:8.00,d:2}],
+   ["1 234,567",{a:1235,d:0},{a:1234.6,d:1},{a:1234.57,d:2}],
+   ["99,5",{a:100,d:0},{a:99.5,d:1},{a:99.50,d:2}]
+  ]},
+ {id:"ex2", short:"Ex 2", title:"Vrai ou faux ?", time:"4 min",
+  consigne:"Un stagiaire a arrondi ces montants au centime. Choisis Vrai ou Faux. Si c'est faux, écris la bonne réponse.",
+  head:["Montant calculé","Arrondi du stagiaire","Vrai ou faux ?"],
+  rows:[
+   ["14,666 €","14,66 €",{vf:"F",corr:14.67}],
+   ["8,004 €","8,00 €",{vf:"V"}],
+   ["21,995 €","21,99 €",{vf:"F",corr:22.00}],
+   ["5,125 €","5,13 €",{vf:"V"}],
+   ["0,999 €","1,00 €",{vf:"V"}],
+   ["36,4449 €","36,45 €",{vf:"F",corr:36.44}]
+  ]},
+ {id:"ex3", short:"Ex 3", title:"Je calcule un pourcentage", time:"8 min",
+  consigne:"Pour chaque ligne, écris l'opération dans le cadre (par exemple 37,90 × 15 ÷ 100), puis le résultat arrondi au centime.",
+  head:["Calcul demandé","Opération","Résultat (€)"],
+  rows:[
+   ["15 % de 37,90 €",{op:[["37,9"],["15"]]},{a:5.69,d:2}],
+   ["5,5 % de 12,49 €",{op:[["12,49"],["5,5","0,055"]]},{a:0.69,d:2}],
+   ["20 % de 49,99 €",{op:[["49,99"],["20","0,2"]]},{a:10.00,d:2}],
+   ["30 % de 17,85 €",{op:[["17,85"],["30","0,3"]]},{a:5.36,d:2}],
+   ["2,1 % de 3,50 €",{op:[["3,5"],["2,1","0,021"]]},{a:0.07,d:2}]
+  ]},
+ {id:"ex4", short:"Ex 4", title:"Du HT au TTC", time:"8 min",
+  consigne:"Tu es à la caisse du Comptoir du Lycée. Avec l'annexe 1, calcule le montant de TVA (arrondi au centime), puis le prix TTC = HT + TVA.",
+  annex:"a1",
+  head:["Article","Montant TVA (€)","Prix TTC (€)"],
+  rows:[
+   ["Roman de poche",{a:0.42,d:2},{a:8.00,d:2}],
+   ["Lot de 4 stylos-bille",{a:0.66,d:2},{a:3.98,d:2}],
+   ["Sandwich à emporter",{a:0.23,d:2},{a:4.40,d:2}],
+   ["Journal quotidien",{a:0.10,d:2},{a:4.90,d:2}],
+   ["Cahier grand format",{a:0.50,d:2},{a:2.99,d:2}],
+   ["Café sur place",{a:0.18,d:2},{a:2.00,d:2}]
+  ],
+  qcm:[{q:"Pourquoi le sandwich et le café n'ont-ils pas le même taux de TVA ?",
+        o:["Parce que le café coûte moins cher","Parce que le sandwich est vendu à emporter et le café est consommé sur place","Parce que le taux dépend du vendeur","Parce que le sandwich est un produit de luxe"],c:1}]},
+ {id:"ex6", short:"Ex 5", title:"Je complète une facture", time:"10 min",
+  consigne:"Complète la facture de l'annexe 2. Arrondis chaque montant au centime et calcule la ligne suivante à partir du montant arrondi.",
+  annex:"a3",
+  head:["Ligne","Montant (€)"],
+  rows:[
+   ["Montant HT – T-shirt coton (12 × 6,85 €)",{a:82.20,d:2}],
+   ["Montant HT – Casquette brodée (8 × 4,35 €)",{a:34.80,d:2}],
+   ["Montant HT – Sweat à capuche (5 × 18,49 €)",{a:92.45,d:2}],
+   ["Total brut HT",{a:209.45,d:2}],
+   ["Remise 8 %",{a:16.76,d:2}],
+   ["Net commercial HT",{a:192.69,d:2}],
+   ["TVA 20 %",{a:38.54,d:2}],
+   ["Net à payer TTC",{a:231.23,d:2}]
+  ]},
+ {id:"ex7", short:"Ex 6", title:"C'est les soldes !", time:"6 min",
+  consigne:"Avec l'annexe 3, calcule la remise de chaque article (arrondie au centime), puis le prix net = prix affiché − remise. Termine par le total à payer.",
+  annex:"a4",
+  head:["Article","Remise (€)","Prix net (€)"],
+  rows:[
+   ["Jean slim – 49,90 € – remise 20 %",{a:9.98,d:2},{a:39.92,d:2}],
+   ["Veste en jean – 79,00 € – remise 15 %",{a:11.85,d:2},{a:67.15,d:2}],
+   ["T-shirt imprimé – 12,99 € – remise 10 %",{a:1.30,d:2},{a:11.69,d:2}],
+   ["Total à payer","—",{a:118.76,d:2}]
+  ]},
+ {id:"bilan", short:"Bilan", title:"Bilan : ce que je retiens", time:"2 min",
+  consigne:"Choisis la bonne réponse pour chaque question.",
+  qcm:[
+   {q:"Quand dois-je arrondir un montant en euros ?",o:["Jamais","Avant de commencer le calcul","Chaque montant que j'écris, au centime","Seulement le dernier total"],c:2},
+   {q:"Comment je calcule le prix TTC ?",o:["Prix HT − TVA","Prix HT + TVA","TVA − Prix HT","Prix HT × TVA"],c:1},
+   {q:"Comment je calcule un prix net après une remise ?",o:["Prix affiché + remise","Remise − prix affiché","Prix affiché − remise","Prix affiché × remise"],c:2}
+  ]}
+];
+
+const ANNEX = {
+ a1:`<div class="annex"><div class="annex-title">Annexe 1 – Fichier articles du Comptoir du Lycée</div>
+  <div class="tbl-wrap"><table><thead><tr><th>Réf.</th><th>Article</th><th>Catégorie</th><th class="num">Prix HT</th><th class="num">TVA</th></tr></thead><tbody>
+  <tr><td>LIV-021</td><td>Roman de poche</td><td>Livre</td><td class="num">7,58 €</td><td class="num">5,5 %</td></tr>
+  <tr><td>PAP-104</td><td>Lot de 4 stylos-bille</td><td>Papeterie</td><td class="num">3,32 €</td><td class="num">20 %</td></tr>
+  <tr><td>ALI-310</td><td>Sandwich jambon-beurre</td><td>Vente à emporter</td><td class="num">4,17 €</td><td class="num">5,5 %</td></tr>
+  <tr><td>PRE-002</td><td>Journal quotidien d'information</td><td>Presse</td><td class="num">4,80 €</td><td class="num">2,1 %</td></tr>
+  <tr><td>PAP-118</td><td>Cahier grand format 96 pages</td><td>Papeterie</td><td class="num">2,49 €</td><td class="num">20 %</td></tr>
+  <tr><td>BAR-001</td><td>Café</td><td>Consommation sur place</td><td class="num">1,82 €</td><td class="num">10 %</td></tr>
+  </tbody></table></div></div>`,
+ a3:`<div class="annex"><div class="annex-title">Annexe 2 – Facture n° F-2026-0917 du 30/09/2026</div>
+  <p><b>Grossiste TEXTI'PRO</b>, 14 rue des Artisans, 69000 Lyon<br><b>Client :</b> Boutique Urban Style, 3 place du Marché, 42000 Saint-Étienne</p>
+  <div class="tbl-wrap"><table><thead><tr><th>Réf.</th><th>Désignation</th><th class="num">Qté</th><th class="num">Prix unit. HT</th><th class="num">Montant HT</th></tr></thead><tbody>
+  <tr><td>TS-01</td><td>T-shirt coton</td><td class="num">12</td><td class="num">6,85 €</td><td class="num">?</td></tr>
+  <tr><td>CQ-07</td><td>Casquette brodée</td><td class="num">8</td><td class="num">4,35 €</td><td class="num">?</td></tr>
+  <tr><td>SW-12</td><td>Sweat à capuche</td><td class="num">5</td><td class="num">18,49 €</td><td class="num">?</td></tr>
+  <tr><td></td><td><b>Total brut HT</b></td><td></td><td></td><td class="num">?</td></tr>
+  <tr><td></td><td>Remise 8 %</td><td></td><td></td><td class="num">?</td></tr>
+  <tr><td></td><td><b>Net commercial HT</b></td><td></td><td></td><td class="num">?</td></tr>
+  <tr><td></td><td>TVA 20 %</td><td></td><td></td><td class="num">?</td></tr>
+  <tr><td></td><td><b>Net à payer TTC</b></td><td></td><td></td><td class="num">?</td></tr>
+  </tbody></table></div></div>`,
+ a4:`<div class="annex receipt"><div class="annex-title" style="font-family:var(--ticket)">Annexe 3 – Ticket de caisse</div>
+  <div style="text-align:center"><b>URBAN STYLE</b><br>3 place du Marché – 42000 Saint-Étienne<br>*** SOLDES ***</div>
+  <table><tbody>
+  <tr><td>Jean slim</td><td class="num">49,90</td></tr><tr><td>&nbsp;&nbsp;Remise -20 %</td><td class="num">?</td></tr>
+  <tr><td>Veste en jean</td><td class="num">79,00</td></tr><tr><td>&nbsp;&nbsp;Remise -15 %</td><td class="num">?</td></tr>
+  <tr><td>T-shirt imprimé</td><td class="num">12,99</td></tr><tr><td>&nbsp;&nbsp;Remise -10 %</td><td class="num">?</td></tr>
+  <tr><th>TOTAL À PAYER</th><th class="num">? EUR</th></tr>
+  </tbody></table><div style="text-align:center">Merci de votre visite !</div></div>`
+};
+
+/* =========================================================
+   État + sauvegarde
+   ========================================================= */
+const KEY = "arrondis-1epc-v2";
+const blank = () => ({nom:"",prenom:"",read:false,done:{},tries:{},vals:{},vf:{},qcm:{},sound:true,cur:"cours"});
+let S = blank();
+try{ const raw = localStorage.getItem(KEY); if(raw) S = Object.assign(blank(), JSON.parse(raw)); }catch(e){}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+
+const ORDER = ["cours", ...EX.map(e=>e.id), "fin"];
+const byId = id => EX.find(e=>e.id===id);
+
+function unlocked(id){
+  if(id==="cours") return true;
+  if(id==="ex1") return S.read && S.nom.trim() && S.prenom.trim();
+  if(id==="fin") return !!S.done.bilan;
+  const i = ORDER.indexOf(id);
+  return !!S.done[ORDER[i-1]];
+}
+
+/* =========================================================
+   Sons (générés, pas de fichier)
+   ========================================================= */
+let AC = null;
+function tone(freq, start, dur, type="sine", vol=.15){
+  if(!S.sound) return;
+  try{
+    AC = AC || new (window.AudioContext||window.webkitAudioContext)();
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, AC.currentTime+start);
+    g.gain.exponentialRampToValueAtTime(.001, AC.currentTime+start+dur);
+    o.connect(g); g.connect(AC.destination);
+    o.start(AC.currentTime+start); o.stop(AC.currentTime+start+dur+.02);
+  }catch(e){}
+}
+const sndOk = ()=>{tone(660,0,.12);tone(990,.1,.18)};
+const sndKo = ()=>{tone(180,0,.25,"square",.08)};
+const sndCash = ()=>{tone(1320,0,.08,"triangle");tone(1760,.08,.08,"triangle");tone(2093,.16,.35,"triangle")};
+
+/* =========================================================
+   Confettis
+   ========================================================= */
+const cv = document.getElementById("confetti"), cx = cv.getContext("2d");
+let parts = [], anim = null;
+const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+function confetti(n){
+  if(reduce) return;
+  cv.width = innerWidth; cv.height = innerHeight;
+  const cols = ["#FF4F79","#1AA7E0","#1FC596","#FFB020","#7B5CFF"];
+  for(let i=0;i<n;i++) parts.push({x:innerWidth/2+(Math.random()-.5)*200,y:innerHeight*.35,vx:(Math.random()-.5)*14,vy:-Math.random()*14-4,
+    r:Math.random()*6+4,c:cols[i%5],a:Math.random()*6,va:(Math.random()-.5)*.3,life:0});
+  if(!anim) loop();
+}
+function loop(){
+  cx.clearRect(0,0,cv.width,cv.height);
+  parts.forEach(p=>{p.vy+=.35;p.x+=p.vx;p.y+=p.vy;p.a+=p.va;p.life++;
+    cx.save();cx.translate(p.x,p.y);cx.rotate(p.a);cx.fillStyle=p.c;cx.fillRect(-p.r,-p.r/2,p.r*2,p.r);cx.restore();});
+  parts = parts.filter(p=>p.y<cv.height+40 && p.life<260);
+  anim = parts.length ? requestAnimationFrame(loop) : (cx.clearRect(0,0,cv.width,cv.height), null);
+}
+
+/* =========================================================
+   Outils nombres
+   ========================================================= */
+const fr = (n,d)=> n.toFixed(d).replace(".",",");
+function parse(str){
+  const s = String(str||"").replace(/[\s\u00a0€%]/g,"").replace(",",".");
+  if(!/^-?\d+(\.\d+)?$/.test(s)) return null;
+  const dec = s.includes(".") ? s.split(".")[1].length : 0;
+  return {v:parseFloat(s), dec};
+}
+function checkOp(str, groups){
+  const s = String(str).replace(/[\s\u00a0€]/g,"").replace(/\./g,",").toLowerCase();
+  if(!/[×x*]/.test(s)) return "ko";
+  return groups.every(g=>g.some(n=>s.includes(n))) ? "ok" : "ko";
+}
+function check(str, spec){
+  const p = parse(str);
+  if(!p) return "ko";
+  if(Math.abs(p.v - spec.a) > 1e-9) return "ko";
+  return p.dec === spec.d ? "ok" : "ko";
+}
+
+/* =========================================================
+   Rendu du parcours
+   ========================================================= */
+const steps = document.getElementById("steps"), panel = document.getElementById("panel");
+
+function renderSteps(){
+  steps.innerHTML = "";
+  ORDER.forEach(id=>{
+    const b = document.createElement("button");
+    b.className = "step" + (S.done[id] || (id==="cours" && S.read) ? " done" : "");
+    const label = id==="cours" ? "Cours" : id==="fin" ? "Mon ticket" : byId(id).short;
+    b.innerHTML = `<span class="dot"></span>${label}${unlocked(id)?"":" 🔒"}`;
+    if(!unlocked(id)) b.disabled = true;
+    if(S.cur===id) b.setAttribute("aria-current","step");
+    b.onclick = ()=>go(id);
+    steps.appendChild(b);
+  });
+}
+
+function go(id){
+  if(!unlocked(id)) return;
+  S.cur = id; save();
+  renderSteps(); renderPanel();
+  panel.scrollIntoView({behavior: reduce ? "auto" : "smooth", block:"start"});
+}
+
+function renderPanel(){
+  if(S.cur==="cours") return renderCours();
+  if(S.cur==="fin") return renderFin();
+  renderEx(byId(S.cur));
+}
+
+/* ---------- Cours ---------- */
+function renderCours(){
+  panel.innerHTML = `
+  <span class="meta">Cours · environ 12 min</span>
+  <h2>Arrondir et calculer en commerce</h2>
+  <p>En commerce, un prix en euros s'écrit toujours avec 2 chiffres après la virgule : on arrondit au centime.</p>
+
+  <div class="cours-block c1"><h3><span class="badge">1</span>La règle de l'arrondi</h3>
+   <ol class="rule">
+    <li>Je repère le chiffre où je m'arrête (unité, dixième ou centième).</li>
+    <li>Je regarde le chiffre juste après.</li>
+    <li>0, 1, 2, 3 ou 4 : je garde mon chiffre. 5, 6, 7, 8 ou 9 : j'ajoute 1 à mon chiffre.</li>
+   </ol>
+   <div class="tbl-wrap"><table><thead><tr><th>Nombre</th><th class="num">À l'unité</th><th class="num">Au dixième</th><th class="num">Au centième</th></tr></thead><tbody>
+    <tr><td>12,347</td><td class="num">12</td><td class="num">12,3</td><td class="num">12,35</td></tr>
+    <tr><td>8,962</td><td class="num">9</td><td class="num">9,0</td><td class="num">8,96</td></tr>
+    <tr><td>4,995</td><td class="num">5</td><td class="num">5,0</td><td class="num">5,00</td></tr>
+   </tbody></table></div>
+   <div class="lab">
+    <b>Essaie par toi-même</b>
+    <div class="lab-row" style="margin-top:8px">
+     <label>Nombre<br><input id="labN" value="36,4449" inputmode="decimal" style="width:140px"></label>
+     <label>Arrondir<br><select id="labD"><option value="0">à l'unité</option><option value="1">au dixième</option><option value="2" selected>au centième</option></select></label>
+    </div>
+    <div class="digits" id="labDigits"></div>
+    <div class="lab-out" id="labOut"></div>
+   </div>
+   <div class="warn"><b>Attention :</b> on regarde seulement le chiffre juste après. 36,4449 au centime donne 36,44, pas 36,45.<br><b>Arrondir n'est pas couper :</b> 14,666 coupé donne 14,66, mais arrondi donne 14,67.</div>
+  </div>
+
+  <div class="cours-block c2"><h3><span class="badge">2</span>Quand arrondir ?</h3>
+   <p>Dans la calculatrice, je garde le résultat exact. J'arrondis au centime chaque montant que j'écris (copie, facture, étiquette). Sur une facture, je calcule la ligne suivante à partir du montant arrondi.</p>
+  </div>
+
+  <div class="cours-block c3"><h3><span class="badge">3</span>Calculer un pourcentage</h3>
+   <div class="formula">Montant = Base × Taux ÷ 100</div>
+   <p>Exemple : 15 % de 37,90 € = 37,90 × 15 ÷ 100 = 5,685 → <b>5,69 €</b></p>
+  </div>
+
+  <div class="cours-block c4"><h3><span class="badge">4</span>Calculer une remise</h3>
+   <div class="formula">Prix net = Prix affiché − Remise</div>
+   <p>Exemple : un article à 37,90 € avec 15 % de remise.<br>Remise = 5,685 → 5,69 €. Prix net = 37,90 − 5,69 = <b>32,21 €</b></p>
+  </div>
+
+  <div class="cours-block c5"><h3><span class="badge">5</span>La TVA</h3>
+   <p>Le prix hors taxes (HT) + la TVA = le prix toutes taxes comprises (TTC). Le client paie le prix TTC.</p>
+   <div class="tbl-wrap"><table><thead><tr><th>Taux (France métropolitaine)</th><th>Exemples</th></tr></thead><tbody>
+    <tr><td><b>20 %</b></td><td>vêtements, papeterie, boissons alcoolisées</td></tr>
+    <tr><td><b>10 %</b></td><td>restauration sur place, hébergement, transport de voyageurs</td></tr>
+    <tr><td><b>5,5 %</b></td><td>denrées alimentaires, livres, vente à emporter</td></tr>
+    <tr><td><b>2,1 %</b></td><td>médicaments remboursables, journaux d'actualité</td></tr>
+   </tbody></table></div>
+   <div class="formula">TVA = HT × Taux ÷ 100 &nbsp;&nbsp; puis &nbsp;&nbsp; TTC = HT + TVA</div>
+   <p>Exemple : cahier à 2,49 € HT, TVA 20 %. TVA = 2,49 × 20 ÷ 100 = 0,498 → 0,50 €. TTC = 2,49 + 0,50 = <b>2,99 €</b></p>
+  </div>
+
+  <div class="actions">
+   <button class="btn next" id="readBtn">J'ai lu le cours, je commence</button>
+   <span id="readMsg" class="feedback"></span>
+  </div>`;
+  const n = document.getElementById("labN"), d = document.getElementById("labD");
+  n.oninput = d.onchange = lab; lab();
+  document.getElementById("readBtn").onclick = ()=>{
+    S.nom = document.getElementById("nom").value; S.prenom = document.getElementById("prenom").value;
+    const m = document.getElementById("readMsg");
+    if(!S.nom.trim() || !S.prenom.trim()){
+      m.className = "feedback ko show"; m.textContent = "Écris ton nom et ton prénom en haut de la page pour commencer.";
+      sndKo(); document.getElementById(S.nom.trim() ? "prenom" : "nom").focus(); return;
+    }
+    S.read = true; save(); sndOk(); go("ex1");
+  };
+}
+
+function lab(){
+  const raw = document.getElementById("labN").value.trim().replace(/\s/g,"");
+  const d = +document.getElementById("labD").value;
+  const box = document.getElementById("labDigits"), out = document.getElementById("labOut");
+  const p = parse(raw);
+  if(!p || p.v < 0){ box.textContent = ""; out.textContent = "Écris un nombre positif, par exemple 12,347."; return; }
+  let [ent, dec=""] = raw.replace(".",",").split(",");
+  const decPad = dec.padEnd(d+1,"0");
+  const keepStr = d===0 ? ent : ent + "," + decPad.slice(0,d);
+  const nextDigit = decPad[d];
+  const rest = decPad.slice(d+1);
+  const shown = d===0
+    ? `${ent.slice(0,-1)}<span class="keep">${ent.slice(-1)}</span>,<span class="next">${nextDigit}</span><span class="gone">${rest}</span>`
+    : `${ent},${decPad.slice(0,d-1)}<span class="keep">${decPad[d-1]}</span><span class="next">${nextDigit}</span><span class="gone">${rest}</span>`;
+  box.innerHTML = shown;
+  const f = Math.pow(10,d);
+  const r = Math.round(Number((p.v*f).toPrecision(12)))/f;
+  const up = +nextDigit >= 5;
+  out.innerHTML = `Chiffre juste après : <b>${nextDigit}</b> → ${up ? "j'ajoute 1" : "je garde"}. Résultat : <b>${fr(r,d)}</b>`;
+}
+
+/* ---------- Exercice ---------- */
+function cellKey(ex,r,c){ return `${ex.id}-${r}-${c}` }
+
+function renderEx(ex){
+  const done = !!S.done[ex.id];
+  let h = `<span class="meta">${ex.short} · environ ${ex.time}</span><h2>${ex.title}</h2><div class="consigne">${ex.consigne}</div>`;
+  if(ex.annex) h += ANNEX[ex.annex];
+  if(ex.rows){
+    h += `<div class="tbl-wrap"><table><thead><tr>${ex.head.map((t,i)=>`<th${i?' class="num"':''}>${t}</th>`).join("")}</tr></thead><tbody>`;
+    ex.rows.forEach((row,r)=>{
+      h += "<tr>" + row.map((cell,c)=>{
+        const k = cellKey(ex,r,c);
+        if(typeof cell==="string") return `<td${c?' class="num"':''}>${cell}</td>`;
+        if(cell.op) return `<td><input class="op ans-op" data-k="${k}" autocomplete="off" aria-label="Opération – ${row[0]}" placeholder="…… × …… ÷ 100" value="${(S.vals[k]||"").replace(/"/g,"")}"></td>`;
+        if(cell.vf){
+          const v = S.vf[k]||"";
+          return `<td class="num"><div class="vf" data-k="${k}"><button type="button" data-v="V" aria-pressed="${v==="V"}">Vrai</button><button type="button" data-v="F" aria-pressed="${v==="F"}">Faux</button></div>
+            <div class="corr-slot" id="slot-${k}">${v==="F" ? corrInput(k) : ""}</div></td>`;
+        }
+        return `<td class="num"><input class="ans" data-k="${k}" inputmode="decimal" autocomplete="off" aria-label="${ex.head[c]} – ${row[0]}" value="${(S.vals[k]||"").replace(/"/g,"")}"></td>`;
+      }).join("") + "</tr>";
+    });
+    h += "</tbody></table></div>";
+  }
+  (ex.qcm||[]).forEach((q,i)=>{
+    const k = `${ex.id}-q${i}`, sel = S.qcm[k];
+    h += `<div class="qcm" data-k="${k}"><div class="q">${q.q}</div><div class="opts">${q.o.map((o,j)=>`<button type="button" data-j="${j}" aria-pressed="${sel===j}">${o}</button>`).join("")}</div></div>`;
+  });
+  const nextId = ORDER[ORDER.indexOf(ex.id)+1];
+  h += `<div class="actions"><button class="btn" id="checkBtn">Vérifier mes réponses</button>
+        <button class="btn next" id="nextBtn" ${done?"":"disabled"}>${nextId==="fin"?"Voir mon ticket":"Exercice suivant"}</button></div>
+        <div class="feedback" id="fb" style="margin-top:12px"></div>`;
+  panel.innerHTML = h;
+
+  panel.querySelectorAll(".ans-op").forEach(inp=>{
+    inp.oninput = ()=>{ S.vals[inp.dataset.k] = inp.value; inp.classList.remove("ok","ko"); save(); };
+  });
+  panel.querySelectorAll(".ans").forEach(inp=>{
+    inp.oninput = ()=>{ S.vals[inp.dataset.k] = inp.value; inp.classList.remove("ok","ko","fmt"); save(); };
+    inp.onkeydown = e=>{ if(e.key==="Enter") document.getElementById("checkBtn").click(); };
+  });
+  panel.querySelectorAll(".vf").forEach(g=>{
+    g.querySelectorAll("button").forEach(b=>b.onclick=()=>{
+      const k = g.dataset.k; S.vf[k] = b.dataset.v; save();
+      g.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed", x===b));
+      g.classList.remove("ok","ko");
+      const slot = document.getElementById("slot-"+k);
+      slot.innerHTML = b.dataset.v==="F" ? corrInput(k) : "";
+      const ci = slot.querySelector("input");
+      if(ci){ ci.oninput = ()=>{ S.vals[k] = ci.value; ci.classList.remove("ok","ko","fmt"); save(); }; ci.focus(); }
+    });
+  });
+  panel.querySelectorAll(".corr-slot input").forEach(ci=>{
+    ci.oninput = ()=>{ S.vals[ci.dataset.k] = ci.value; ci.classList.remove("ok","ko","fmt"); save(); };
+  });
+  panel.querySelectorAll(".qcm").forEach(q=>{
+    q.querySelectorAll("button").forEach(b=>b.onclick=()=>{
+      S.qcm[q.dataset.k] = +b.dataset.j; save();
+      q.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed", x===b));
+      q.classList.remove("ok","ko");
+    });
+  });
+  document.getElementById("checkBtn").onclick = ()=>verify(ex);
+  document.getElementById("nextBtn").onclick = ()=>go(nextId);
+  if(done) verify(ex, true);
+}
+
+function corrInput(k){
+  return `<label class="corr-lab">Correction<input class="ans" data-k="${k}" inputmode="decimal" autocomplete="off" value="${(S.vals[k]||"").replace(/"/g,"")}"></label>`;
+}
+
+function mark(el, st, silent){
+  el.classList.remove("ok","ko","fmt","shake","pop");
+  el.classList.add(st);
+  if(!silent){ void el.offsetWidth; el.classList.add(st==="ok" ? "pop" : "shake"); }
+}
+
+function verify(ex, silent){
+  let nOk=0, nKo=0, nFmt=0, nEmpty=0;
+  if(ex.rows) ex.rows.forEach((row,r)=>row.forEach((cell,c)=>{
+    if(typeof cell==="string") return;
+    const k = cellKey(ex,r,c);
+    if(cell.op){
+      const inp = panel.querySelector(`.ans-op[data-k="${k}"]`);
+      if(!inp.value.trim()){ nEmpty++; inp.classList.remove("ok"); inp.classList.add("ko"); return; }
+      const st = checkOp(inp.value, cell.op);
+      mark(inp, st, silent); st==="ok" ? nOk++ : nKo++;
+      return;
+    }
+    if(cell.vf){
+      const g = panel.querySelector(`.vf[data-k="${k}"]`), v = S.vf[k];
+      if(!v){ nEmpty++; g.classList.remove("ok"); g.classList.add("ko"); return; }
+      if(v !== cell.vf){ nKo++; mark(g,"ko",silent); return; }
+      if(v==="V"){ nOk++; mark(g,"ok",silent); return; }
+      const ci = panel.querySelector(`#slot-${CSS.escape(k)} input`);
+      const st = check(ci.value, {a:cell.corr, d:2});
+      if(!ci.value.trim()){ nEmpty++; g.classList.remove("ko"); g.classList.add("ok"); ci.classList.add("ko"); return; }
+      g.classList.remove("ko"); g.classList.add("ok"); mark(ci, st, silent);
+      st==="ok"?nOk++:st==="fmt"?nFmt++:nKo++;
+      return;
+    }
+    const inp = panel.querySelector(`.ans[data-k="${k}"]`);
+    if(!inp.value.trim()){ nEmpty++; inp.classList.remove("ok","fmt"); inp.classList.add("ko"); return; }
+    const st = check(inp.value, cell);
+    mark(inp, st, silent);
+    st==="ok"?nOk++:st==="fmt"?nFmt++:nKo++;
+  }));
+  (ex.qcm||[]).forEach((q,i)=>{
+    const k = `${ex.id}-q${i}`, el = panel.querySelector(`.qcm[data-k="${k}"]`), sel = S.qcm[k];
+    if(sel===undefined){ nEmpty++; el.classList.add("ko"); return; }
+    if(sel===q.c){ nOk++; mark(el,"ok",silent); } else { nKo++; mark(el,"ko",silent); }
+  });
+
+  const fb = document.getElementById("fb");
+  if(silent && S.done[ex.id]){ fb.className="feedback ok show"; fb.textContent = `Exercice validé : ${"★".repeat(S.done[ex.id])}${"☆".repeat(3-S.done[ex.id])}`; lockEx(); return; }
+
+  S.tries[ex.id] = (S.tries[ex.id]||0) + 1;
+  if(nKo===0 && nFmt===0 && nEmpty===0){
+    const t = S.tries[ex.id];
+    S.done[ex.id] = t===1 ? 3 : t===2 ? 2 : 1;
+    save();
+    fb.className = "feedback ok show";
+    fb.textContent = `Tout est juste ! ${"★".repeat(S.done[ex.id])}${"☆".repeat(3-S.done[ex.id])} (${t} essai${t>1?"s":""})`;
+    document.getElementById("nextBtn").disabled = false;
+    sndCash(); confetti(70); lockEx(); renderSteps(); renderTicket(ex.id);
+  } else {
+    save();
+    const msgs = [];
+    if(nKo) msgs.push(`${nKo} réponse${nKo>1?"s":""} fausse${nKo>1?"s":""} (en rouge) : refais le calcul.`);
+    if(nFmt) msgs.push(`${nFmt} bon${nFmt>1?"s":""} calcul${nFmt>1?"s":""} mal écrit${nFmt>1?"s":""} (en orange) : vérifie le nombre de chiffres après la virgule.`);
+    if(nEmpty) msgs.push(`${nEmpty} réponse${nEmpty>1?"s":""} manquante${nEmpty>1?"s":""}.`);
+    fb.className = "feedback " + (nKo||nEmpty ? "ko" : "fmt") + " show";
+    fb.textContent = msgs.join(" ");
+    if(nOk && !nKo && !nEmpty) sndOk(); else sndKo();
+  }
+}
+
+function lockEx(){
+  panel.querySelectorAll(".ans, .ans-op").forEach(i=>i.readOnly=true);
+  panel.querySelectorAll(".vf button, .qcm button").forEach(b=>b.disabled=true);
+  const c = document.getElementById("checkBtn"); if(c) c.disabled = true;
+}
+
+/* ---------- Fin ---------- */
+function totalStars(){ return EX.reduce((s,e)=>s+(S.done[e.id]||0),0) }
+function renderFin(){
+  const t = totalStars(), max = EX.length*3;
+  panel.innerHTML = `<div class="final">
+    <span class="meta">Séance terminée</span>
+    <h2>Bravo ${esc(S.prenom)} !</h2>
+    <div class="stars">${"★".repeat(Math.round(t/max*5))}${"☆".repeat(5-Math.round(t/max*5))}</div>
+    <p style="font-size:1.2rem"><b>${t} étoiles sur ${max}</b></p>
+    <p>Montre ton ticket (à droite, ou en haut sur téléphone) à ton enseignante.</p>
+    <p style="color:var(--muted)">3 étoiles = juste du premier coup · 2 étoiles = au deuxième essai · 1 étoile = après plusieurs essais</p>
+  </div>`;
+  sndCash(); confetti(180);
+}
+function esc(s){ return String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])) }
+
+/* ---------- Ticket de suivi ---------- */
+function renderTicket(newId){
+  const t = totalStars(), max = EX.length*3;
+  const nDone = EX.filter(e=>S.done[e.id]).length;
+  const d = new Date();
+  document.getElementById("ticket").innerHTML = `
+   <div class="head"><b>MON TICKET</b><br>${esc(S.prenom)} ${esc(S.nom.toUpperCase())}<br>1EPC · ${d.toLocaleDateString("fr-FR")}</div>
+   <div class="pline ${S.read?"":"todo"}"><span>Cours lu</span><span>${S.read?"OK":"..."}</span></div>
+   ${EX.map(e=>`<div class="pline ${S.done[e.id]?"":"todo"} ${newId===e.id?"new":""}"><span>${e.short}</span><span class="st">${S.done[e.id]?"★".repeat(S.done[e.id])+"☆".repeat(3-S.done[e.id]):"..."}</span></div>`).join("")}
+   <div class="ptotal"><span>TOTAL</span><span>${t} / ${max} ★</span></div>
+   <div class="bar" aria-label="Progression"><span style="width:${Math.round(nDone/EX.length*100)}%"></span></div>`;
+}
+
+/* =========================================================
+   Démarrage
+   ========================================================= */
+const nomI = document.getElementById("nom"), preI = document.getElementById("prenom");
+nomI.value = S.nom; preI.value = S.prenom;
+[nomI, preI].forEach(i=>i.oninput=()=>{ S.nom = nomI.value; S.prenom = preI.value; save(); renderTicket(); renderSteps(); });
+
+const sb = document.getElementById("sound");
+function paintSound(){ sb.textContent = "Son : " + (S.sound?"activé":"coupé"); sb.setAttribute("aria-pressed", S.sound); }
+sb.onclick = ()=>{ S.sound = !S.sound; save(); paintSound(); };
+paintSound();
+
+document.getElementById("reset").onclick = ()=>{
+  if(!confirm("Effacer toutes tes réponses et recommencer ?")) return;
+  S = blank(); save(); nomI.value = ""; preI.value = "";
+  paintSound(); renderSteps(); renderPanel(); renderTicket();
+};
+
+if(!unlocked(S.cur)) S.cur = "cours";
+renderSteps(); renderPanel(); renderTicket();
+</script>
+</body>
+</html>
